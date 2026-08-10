@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated conversion output — DO NOT commit books or extracted images.
+# (Uncomment the lines below if you run the script locally and want to keep
+#  the repository clean from test artifacts.)
+# llm2graph-pdf/
+# images/
