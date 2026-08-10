@@ -8,8 +8,12 @@ venv/
 .DS_Store
 Thumbs.db
 
-# Generated conversion output — DO NOT commit books or extracted images.
-# (Uncomment the lines below if you run the script locally and want to keep
-#  the repository clean from test artifacts.)
+# Generated conversion output — DO NOT commit books or extracted images
+# produced by *your own* runs. (Uncomment the lines below if you run the
+# script locally and want to keep the repository clean from test artifacts.)
 # llm2graph-pdf/
 # images/
+
+# NOTE: the `examples/` folder IS intentionally committed — it ships a small,
+# self-authored sample PDF plus its pdf2md output so users can see the tool
+# working out of the box. Do not add example-generated artifacts elsewhere.

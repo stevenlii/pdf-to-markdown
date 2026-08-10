@@ -193,7 +193,7 @@ def extract_page(doc, page_no, body_size, img_dir, counter, stats, fig_bboxes):
         items.append((y0, x0, "image", f"images/{fname}"))
         fig_bboxes.append(fitz.Rect(b["bbox"]))
 
-    def inside_fig(bbox):
+    def inside_fig(bbox, text=""):
         for fb in fig_bboxes:
             ix0 = max(bbox.x0, fb.x0)
             iy0 = max(bbox.y0, fb.y0)
@@ -204,6 +204,11 @@ def extract_page(doc, page_no, body_size, img_dir, counter, stats, fig_bboxes):
                 area = (bbox.x1 - bbox.x0) * (bbox.y1 - bbox.y0)
                 if area > 0 and inter / area > 0.6:
                     return True
+                # A short text block overlapping a figure is almost always a
+                # label drawn on top of the drawing -> skip it (the label is
+                # already rendered into the figure image via clip).
+                if area > 0 and inter / area > 0.35 and len(text) < 60:
+                    return True
         return False
 
     # 3) Text / code / headings
@@ -211,9 +216,7 @@ def extract_page(doc, page_no, body_size, img_dir, counter, stats, fig_bboxes):
         if b.get("type") != 0:
             continue
         bbox = fitz.Rect(b["bbox"])
-        if inside_fig(bbox):
-            continue
-        lines_txt = []
+        raw_lines = []
         block_mono = False
         max_sz = 0
         for l in b.get("lines", []):
@@ -223,24 +226,31 @@ def extract_page(doc, page_no, body_size, img_dir, counter, stats, fig_bboxes):
                 if is_mono(s["font"]):
                     block_mono = True
                 max_sz = max(max_sz, s["size"])
-            lines_txt.append(line_text)
-        raw = "\n".join(lines_txt).strip()
+            raw_lines.append(line_text)
+        raw = "\n".join(raw_lines).strip()
         if not raw:
             continue
-        cleaned = []
-        for ln in raw.splitlines():
-            ls = ln.strip()
-            if not ls:
-                continue
-            if any(sub in ls for sub in FOOTER_SUB):
-                continue
-            if re.fullmatch(r"\d{1,3}", ls):          # isolated page number
-                continue
-            if re.search(r"[｜|]\s*\d{1,3}\s*$", ls) and len(ls) <= 40:
-                continue
-            if re.fullmatch(r"\d{1,3}\s*[｜|]\s*.{1,30}", ls):
-                continue
-            cleaned.append(ls)
+        if inside_fig(bbox, raw):
+            continue
+        # For code, preserve indentation (do NOT strip leading whitespace) so
+        # Python indentation survives. For prose, strip and run footer filters.
+        if block_mono:
+            cleaned = [ln.rstrip() for ln in raw_lines if ln.strip()]
+        else:
+            cleaned = []
+            for ln in raw_lines:
+                ls = ln.strip()
+                if not ls:
+                    continue
+                if any(sub in ls for sub in FOOTER_SUB):
+                    continue
+                if re.fullmatch(r"\d{1,3}", ls):          # isolated page number
+                    continue
+                if re.search(r"[｜|]\s*\d{1,3}\s*$", ls) and len(ls) <= 40:
+                    continue
+                if re.fullmatch(r"\d{1,3}\s*[｜|]\s*.{1,30}", ls):
+                    continue
+                cleaned.append(ls)
         if not cleaned:
             continue
         text = "\n".join(cleaned)
@@ -384,6 +394,11 @@ def main():
                     prev = "heading"
                     continue
                 if PART_HEAD.match(text):
+                    prev = "heading"
+                    continue
+                # Skip a heading that merely repeats the book title (e.g. a
+                # cover line) — it is already rendered as the H1.
+                if text.replace(" ", "") == book_title.replace(" ", ""):
                     prev = "heading"
                     continue
                 ts = text.strip()

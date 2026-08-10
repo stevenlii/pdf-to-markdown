@@ -17,8 +17,10 @@ rather than merely pulled out as embedded bitmaps.
   - `###` / `####` — numbered sections (`1.1`, `1.1.1`, …)
 - **Vector figures rendered** with PyMuPDF `get_drawings()` → PNG.
 - **Embedded raster images extracted** (CMYK → RGB fix so they preview correctly).
-- **Code blocks detected** by monospaced font and fenced as ` ```python `,
-  including Chinese `#` comments that would otherwise be misread as headings.
+- **Code blocks detected** by monospaced font and fenced with **4 backticks**
+  (```` ```python ````) so source that itself contains ```` ``` ```` lines
+  (e.g. prompt / JSON templates) does not break the fence. Chinese `#` comments
+  that would otherwise be misread as headings are also captured as code.
 - **CJK spacing cleaned**; running headers/footers and page numbers filtered out.
 - **Tiny decorative icons skipped.**
 - **Source PDF copied** into the output folder for a self-contained archive.
@@ -97,6 +99,32 @@ book/
 - Chapters from the PDF outline become `##` headings; numbered sections become
   `###` / `####`.
 - Code blocks are fenced.
+
+## Examples
+
+The `examples/` folder ships a tiny, **self-authored, copyright-free** sample PDF
+and its `pdf2md` output, so you can see the tool work out of the box:
+
+```
+examples/
+├── make_sample.py     # regenerates sample.pdf (needs a system CJK font)
+├── sample.pdf         # the self-authored sample input
+└── sample/            # pdf2md output:
+    ├── sample.pdf     # original (copied)
+    ├── sample.md      # converted Markdown
+    └── images/        # extracted figures
+```
+
+To regenerate it yourself:
+
+```bash
+cd examples
+python make_sample.py          # creates sample.pdf
+python ../pdf2md.py sample.pdf # creates sample/
+```
+
+> The sample is original demo content, **not** a real book, so it is safe to
+> redistribute. Do not commit converted output of copyrighted books.
 
 ## Notes / tuning
 
